@@ -1,16 +1,17 @@
 package controllers
 
 import (
+	"errors"
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 	"net/http"
 	"os"
 	"time"
 	"weather-app/config"
 	"weather-app/models"
 	"weather-app/utils"
-
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
-	"gorm.io/gorm"
 )
 
 func Register(c *gin.Context) {
@@ -20,7 +21,14 @@ func Register(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
+		return
+	}
+
+	//  CEK DUPLICATE USERNAME
+	var existing models.User
+	if err := config.DB.Where("username = ?", input.Username).First(&existing).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"status": "error", "message": "Username already exists"})
 		return
 	}
 
@@ -29,11 +37,11 @@ func Register(c *gin.Context) {
 	user := models.User{Username: input.Username, Password: hashedPassword}
 
 	if err := config.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "User registered"})
+	c.JSON(http.StatusCreated, gin.H{"status": "success", "message": "User has successfully registered"})
 }
 
 func Login(c *gin.Context) {
@@ -43,7 +51,36 @@ func Login(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		// Customisasi Pesan Error
+		var validation_error validator.ValidationErrors
+		if errors.As(err, &validation_error) {
+			field := validation_error[0].Field()
+			tag := validation_error[0].Tag()
+
+			var msg string
+			switch field {
+			case "Username":
+				msg = "Username is required"
+			case "Password":
+				if tag == "required" {
+					msg = "Password is required"
+				} else if tag == "min" {
+					msg = "Password must be at least 6 characters"
+				}
+			default:
+				msg = "Invalid input"
+			}
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  "error",
+				"message": msg,
+			})
+			return
+		}
+		// Fallback error
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "Invalid request",
+		})
 		return
 	}
 
@@ -73,5 +110,5 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": tokenString})
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Login successfully", "token": tokenString})
 }

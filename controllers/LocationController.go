@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"weather-app/config"
 	"weather-app/models"
@@ -24,9 +25,11 @@ func SaveLocation(c *gin.Context) {
 	var existing models.Location
 	if err := config.DB.Where("city = ? AND latitude = ? AND longitude = ?",
 		input.City, input.Latitude, input.Longitude).First(&existing).Error; err == nil {
+		log.Printf("[DUPLIKAT] Lokasi %s sudah ada di database. ID: %d", existing.City, existing.ID)
 		c.JSON(http.StatusConflict, gin.H{
 			"status":  "error",
 			"message": "Location already exists",
+			"data":    existing,
 		})
 		return
 	}
@@ -38,7 +41,7 @@ func SaveLocation(c *gin.Context) {
 		Longitude: input.Longitude,
 		Weather: models.Weather{
 			Summary:       "",
-			Temp:          0,
+			Temperature:   0,
 			WindSpeed:     0,
 			WindAngle:     0,
 			WindDirection: "",
@@ -62,7 +65,7 @@ func SaveLocation(c *gin.Context) {
 			"latitude":        location.Latitude,
 			"longitude":       location.Longitude,
 			"weather_summary": location.Weather.Summary,
-			"temperature":     location.Weather.Temp,
+			"temperature":     location.Weather.Temperature,
 			"wind_speed":      location.Weather.WindSpeed,
 			"wind_angle":      location.Weather.WindAngle,
 			"wind_direction":  location.Weather.WindDirection,

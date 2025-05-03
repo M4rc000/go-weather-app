@@ -11,21 +11,16 @@ import (
 func StartScheduler() {
 	go func() {
 		for {
-			log.Println("⏰ Running scheduled weather update...")
-
 			var locations []models.Location
-			if err := config.DB.Find(&locations).Error; err != nil {
-				log.Println("❌ Error fetching locations:", err)
-				time.Sleep(5 * time.Minute)
-				continue
-			}
+			config.DB.Find(&locations)
 
-			// Async: goroutine per lokasi
+			now := time.Now().Format("2006/01/02 15:04:05")
+			log.Printf("[CRON] Start Schedule Job Cron at %s - Total Schedule Job: %d", now, len(locations))
+
 			for _, loc := range locations {
 				go services.FetchAndUpdateWeather(loc)
 			}
 
-			// Batasi kecepatan sesuai MeteoSource plan: 10/min
 			time.Sleep(1 * time.Minute)
 		}
 	}()

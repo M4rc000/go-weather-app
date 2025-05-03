@@ -76,7 +76,7 @@ func UpdateWeather(c *gin.Context) {
 
 	// Update manual field
 	weather.Summary = input.Summary
-	weather.Temp = input.Temp
+	weather.Temperature = input.Temperature
 	weather.WindSpeed = input.WindSpeed
 	weather.WindAngle = input.WindAngle
 	weather.WindDirection = input.WindDirection
