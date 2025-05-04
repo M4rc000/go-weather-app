@@ -20,7 +20,7 @@ func StartScheduler() {
 			for _, loc := range locations {
 				go services.FetchAndUpdateWeather(loc)
 			}
-
+			// Delay 1 Menit sebelum menjalankan request lagi
 			time.Sleep(1 * time.Minute)
 		}
 	}()

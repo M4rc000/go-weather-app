@@ -1,0 +1,38 @@
+<!-- ======= Sidebar ======= -->
+<aside id="sidebar" class="sidebar">
+
+    <ul class="sidebar-nav" id="sidebar-nav">
+
+        <li class="nav-item">
+            <a class="nav-link active" href="/home/get-location">
+                <i class="bx bxs-map"></i>
+                <span>Get Location</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/home/weather">
+                <i class="bx bxs-cloud-lightning"></i>
+                <span>Weather</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/home/forecast">
+                <i class="bx bxs-cloud"></i>
+                <span>Forecast</span>
+            </a>
+        </li>
+    </ul>
+
+</aside><!-- End Sidebar-->
+
+<main id="main" class="main">
+
+    <div class="pagetitle">
+        <h1>{{.title}}</h1>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">{{.menu}}</a></li>
+                <li class="breadcrumb-item active">{{.title}}</li>
+            </ol>
+        </nav>
+    </div><!-- End Page Title -->

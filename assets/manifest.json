@@ -1,0 +1,21 @@
+{
+    "name": "ValeoMS",
+    "short_name": "ValeoMS",
+    "start_url": "/ValeoMS/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#ffff",
+    "icons": [
+      {
+        "src": "/img/valeo.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "/img/valeo.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ]
+  }
+  

@@ -1,0 +1,89 @@
+{{ template "header.html". }}
+{{ template "navbar.html". }}
+{{ template "sidebar.html". }}
+<section>
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md">
+                    <table class="table datatable">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>City</th>
+                            <th>Latitude</th>
+                            <th>Longitude</th>
+                            <th>Summary</th>
+                            <th>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {{ range .data }}
+                        <tr>
+                            <td>{{ .Number }}</td>
+                            <td>{{ .City }}</td>
+                            <td>{{ .Latitude }}</td>
+                            <td>{{ .Longitude }}</td>
+                            <td class="text-center">{{ .Summary }}</td>
+                            <td class="text-center">
+                                <div class="row g-0 mx-0 px-0">
+                                    <div class="col-md">
+                                        <a href="/home/weather/detail/{{ .ID }}" class="btn btn-sm btn-success">
+                                            <i class="bx bxs-info-circle" style="color: white"></i>
+                                        </a>
+                                    </div>
+                                    <div class="col-md">
+                                        <a href="/home/weather/edit/{{ .ID }}" class="btn btn-sm btn-warning">
+                                            <i class="bx bx-edit-alt" style="color: white"></i>
+                                        </a>
+                                    </div>
+                                    <div class="col-md">
+                                        <a href="/home/weather/delete/{{ .ID }}" class="btn btn-sm btn-danger">
+                                            <i class="bx bx-trash" style="color: white"></i>
+                                        </a>
+                                    </div>
+                                </div>
+
+                            </td>
+                        </tr>
+                        {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{ template "script.html". }}
+{{ if .errorWeather }}
+<script>
+    Swal.fire({
+        title: "Error",
+        text: `{{ .errorWeather }}`,
+        icon: "error",
+        width: "20em"
+    });
+</script>
+{{ end }}
+{{ if .successUpdate }}
+<script>
+    Swal.fire({
+        title: "Success",
+        text: `{{ .successUpdate }}`,
+        icon: "success",
+        width: "20em"
+    });
+</script>
+{{ end }}
+{{ if .successDelete }}
+<script>
+    Swal.fire({
+        title: "Success",
+        text: `{{ .successDelete }}`,
+        icon: "success",
+        width: "20em"
+    });
+</script>
+{{ end }}
+{{ template "footer.html". }}

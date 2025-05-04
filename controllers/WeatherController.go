@@ -1,39 +1,101 @@
 package controllers
 
 import (
+	"github.com/gin-contrib/sessions"
+	csrf "github.com/utrack/gin-csrf"
 	"net/http"
 	"weather-app/config"
 	"weather-app/models"
+	"weather-app/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 // GET /weather
 func GetAllWeather(c *gin.Context) {
+	session := sessions.Default(c)
+
+	err := session.Get("ERROR")
+	deleteSuccess := session.Get("DELETE_SUCCESS")
+	errorWeather := session.Get("ERROR_WEATHER")
+	successUpdate := session.Get("SUCCESS_UPDATE")
+
+	session.Delete("ERROR")
+	session.Delete("DELETE_SUCCESS")
+	session.Delete("ERROR_WEATHER")
+	session.Delete("SUCCESS_UPDATE")
+
+	menu, _ := utils.GetMenuSubmenu(c)
+
 	var weathers []models.Weather
 	config.DB.Preload("Location").Find(&weathers)
 
-	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "All weather data",
-		"data":    weathers,
+	var DataWeathers []map[string]interface{}
+	for i, weather := range weathers {
+		DataWeathers = append(DataWeathers, map[string]interface{}{
+			"Number":        i + 1,
+			"ID":            weather.ID,
+			"City":          weather.City,
+			"Latitude":      weather.Latitude,
+			"Longitude":     weather.Longitude,
+			"Summary":       weather.Summary,
+			"Temperature":   weather.Temperature,
+			"WindSpeed":     weather.WindSpeed,
+			"WindAngle":     weather.WindAngle,
+			"WindDirection": weather.WindDirection,
+		})
+	}
+
+	c.HTML(http.StatusFound, "show_weather.html", gin.H{
+		"title":         "Weathers",
+		"menu":          menu,
+		"data":          DataWeathers,
+		"user":          session.Get("USERNAME"),
+		"errorWeather":  errorWeather,
+		"err":           err,
+		"successUpdate": successUpdate,
+		"deleteSuccess": deleteSuccess,
 	})
 }
 
 // GET /weather/:id
 func GetWeatherByID(c *gin.Context) {
 	id := c.Param("id")
+	session := sessions.Default(c)
+	menu, _ := utils.GetMenuSubmenu(c)
 	var weather models.Weather
 
 	if err := config.DB.First(&weather, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Weather not found"})
+		session.Set("ERROR_WEATHER", "Weather not found")
+		c.Redirect(http.StatusFound, "home/weather/")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "Weather found",
-		"data":    weather,
+	c.HTML(http.StatusOK, "detail_weather.html", gin.H{
+		"title": "Detail Weather",
+		"menu":  menu,
+		"data":  weather,
+	})
+}
+
+// GET /weather/edit/:id
+func EditWeatherByID(c *gin.Context) {
+	id := c.Param("id")
+	session := sessions.Default(c)
+	menu, _ := utils.GetMenuSubmenu(c)
+	var weather models.Weather
+
+	if err := config.DB.First(&weather, "id = ?", id).Error; err != nil {
+		session.Set("ERROR_WEATHER", "Weather not found")
+		c.Redirect(http.StatusFound, "home/weather/")
+		return
+	}
+
+	c.HTML(http.StatusOK, "edit_weather.html", gin.H{
+		"title":     "Edit Weather",
+		"menu":      menu,
+		"data":      weather,
+		"csrfToken": csrf.GetToken(c),
 	})
 }
 
@@ -60,17 +122,22 @@ func CreateWeather(c *gin.Context) {
 
 // PUT /weather/:id
 func UpdateWeather(c *gin.Context) {
+	session := sessions.Default(c)
 	id := c.Param("id")
 	var weather models.Weather
 
 	if err := config.DB.First(&weather, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Weather not found"})
+		session.Set("ERROR", "Weather not found")
+		session.Save()
+		c.Redirect(http.StatusFound, "/home/weather")
 		return
 	}
 
 	var input models.Weather
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
+	if err := c.ShouldBind(&input); err != nil {
+		session.Set("ERROR", err.Error())
+		session.Save()
+		c.Redirect(http.StatusFound, "/home/weather")
 		return
 	}
 
@@ -83,20 +150,24 @@ func UpdateWeather(c *gin.Context) {
 
 	config.DB.Save(&weather)
 
-	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "Weather updated",
-		"data":    weather,
-	})
+	session.Set("SUCCESS_UPDATE", "Weather successfully updated")
+	session.Save()
+	c.Redirect(http.StatusFound, "/home/weather")
 }
 
-// DELETE /weather/:id
+// DELETE /weather/del:id
 func DeleteWeather(c *gin.Context) {
 	id := c.Param("id")
+	session := sessions.Default(c)
+
 	if err := config.DB.Delete(&models.Weather{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Delete failed"})
+		session.Set("DELETE_ERROR", "Delete failed")
+		session.Save()
+		c.Redirect(http.StatusFound, "/home/weather")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Weather deleted"})
+	session.Set("DELETE_SUCCESS", "Weather successfully deleted")
+	session.Save()
+	c.Redirect(http.StatusFound, "/home/weather")
 }

@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	csrf "github.com/utrack/gin-csrf"
 	"io"
 	"net/http"
 	"os"
@@ -12,16 +13,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func GetForecast(c *gin.Context) {
+	//session := sessions.Default(c)
+	menu, _ := utils.GetMenuSubmenu(c)
+	c.HTML(http.StatusFound, "show_forecast.html", gin.H{
+		"title":     "Forecast",
+		"menu":      menu,
+		"csrfToken": csrf.GetToken(c),
+	})
+}
+
 func GetDailyForecast(c *gin.Context) {
 	city := c.Param("city")
 	cacheKey := "daily:" + city
 
-	// ✅ Check from cache
+	// ✅ Check from cache and ensure it's an array
 	if cached, found := utils.GetCache(cacheKey); found {
+		var dailyData []interface{}
+		if data, ok := cached.([]interface{}); ok {
+			dailyData = data
+		} else if cached != nil {
+			dailyData = []interface{}{cached}
+		} else {
+			dailyData = []interface{}{}
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "success (cached)",
 			"message": "Daily forecast (cached)",
-			"data":    cached,
+			"data":    dailyData,
 		})
 		return
 	}
@@ -44,13 +63,23 @@ func GetDailyForecast(c *gin.Context) {
 	var result map[string]interface{}
 	json.Unmarshal(body, &result)
 
+	// ✅ Convert to a slice if necessary
+	var dailyData []interface{}
+	if data, ok := result["daily"].([]interface{}); ok {
+		dailyData = data
+	} else if result["daily"] != nil {
+		dailyData = []interface{}{result["daily"]}
+	} else {
+		dailyData = []interface{}{}
+	}
+
 	// ✅ Set to cache
-	utils.SetCache(cacheKey, result["daily"], 5*time.Minute)
+	utils.SetCache(cacheKey, dailyData, 5*time.Minute)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
 		"message": "Daily forecast for " + city,
-		"data":    result["daily"],
+		"data":    dailyData,
 	})
 }
 
@@ -58,12 +87,20 @@ func GetHourlyForecast(c *gin.Context) {
 	city := c.Param("city")
 	cacheKey := "hourly:" + city
 
-	// ✅ Check from cache
+	// ✅ Check from cache and ensure it's an array
 	if cached, found := utils.GetCache(cacheKey); found {
+		var hourlyData []interface{}
+		if data, ok := cached.([]interface{}); ok {
+			hourlyData = data
+		} else if cached != nil {
+			hourlyData = []interface{}{cached}
+		} else {
+			hourlyData = []interface{}{}
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "success (cached)",
 			"message": "Hourly forecast (cached)",
-			"data":    cached,
+			"data":    hourlyData,
 		})
 		return
 	}
@@ -86,12 +123,22 @@ func GetHourlyForecast(c *gin.Context) {
 	var result map[string]interface{}
 	json.Unmarshal(body, &result)
 
+	// ✅ Convert to a slice if necessary
+	var hourlyData []interface{}
+	if data, ok := result["hourly"].([]interface{}); ok {
+		hourlyData = data
+	} else if result["hourly"] != nil {
+		hourlyData = []interface{}{result["hourly"]}
+	} else {
+		hourlyData = []interface{}{}
+	}
+
 	// ✅ Set to cache
-	utils.SetCache(cacheKey, result["hourly"], 5*time.Minute)
+	utils.SetCache(cacheKey, hourlyData, 5*time.Minute)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
 		"message": "Hourly forecast for " + city,
-		"data":    result["hourly"],
+		"data":    hourlyData,
 	})
 }

@@ -4,3 +4,5 @@
 /.air.toml
 tmp
 /tmp
+.idea
+/.idea

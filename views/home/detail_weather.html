@@ -1,0 +1,63 @@
+{{ template "header.html". }}
+{{ template "navbar.html". }}
+{{ template "sidebar.html". }}
+<section>
+    <div class="card">
+        <div class="card-body">
+            <div class="row mt-4">
+                <div class="col-md">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 py-2">
+                            <label for="City">City</label>
+                        </div>
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="City" name="City" value="{{.data.City}}" readonlyd>
+                        </div>
+                    </div>
+                    <div class="row align-items-center mt-2">
+                        <div class="col-md-2 py-2">
+                            <label for="Summary">Weather Summary</label>
+                        </div>
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="Summary" name="Summary" value="{{.data.Summary}}" readonly>
+                        </div>
+                    </div>
+                    <div class="row align-items-center mt-2">
+                        <div class="col-md-2 py-2">
+                            <label for="Temperature">Temperature</label>
+                        </div>
+                        <div class="col-md-8">
+                            <input type="number" step="any" class="form-control" id="Temperature" name="Temperature" value="{{.data.Temperature}}" readonly>
+                        </div>
+                    </div>
+                    <div class="row align-items-center mt-2">
+                        <div class="col-md-2 py-2">
+                            <label for="WindSpeed">Wind Speed</label>
+                        </div>
+                        <div class="col-md-8">
+                            <input type="number" step="any" class="form-control" id="WindSpeed" name="WindSpeed" value="{{.data.WindSpeed}}" readonly>
+                        </div>
+                    </div>
+                    <div class="row align-items-center mt-2">
+                        <div class="col-md-2 py-2">
+                            <label for="WindAngle">Wind Angle</label>
+                        </div>
+                        <div class="col-md-8">
+                            <input type="number" step="any" class="form-control" id="WindAngle" name="WindAngle" value="{{.data.WindAngle}}" readonly>
+                        </div>
+                    </div>
+                    <div class="row align-items-center mt-2">
+                        <div class="col-md-2 py-2">
+                            <label for="WindDirection">Wind Direction</label>
+                        </div>
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="WindDirection" name="WindDirection" value="{{.data.WindDirection}}" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{{ template "script.html". }}
+{{ template "footer.html". }}
