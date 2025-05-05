@@ -3,23 +3,30 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gin-contrib/sessions"
 	csrf "github.com/utrack/gin-csrf"
 	"io"
 	"net/http"
 	"os"
 	"time"
+	"weather-app/middlewares"
 	"weather-app/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func GetForecast(c *gin.Context) {
-	//session := sessions.Default(c)
+	session := sessions.Default(c)
+	userSession := middlewares.GetSessionUser(c)
+	session.Set("USERNAME_SESSION", userSession.Username)
+	session.Save()
 	menu, _ := utils.GetMenuSubmenu(c)
+
 	c.HTML(http.StatusFound, "show_forecast.html", gin.H{
 		"title":     "Forecast",
 		"menu":      menu,
 		"csrfToken": csrf.GetToken(c),
+		"user":      userSession,
 	})
 }
 

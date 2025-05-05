@@ -2,8 +2,10 @@ package utils
 
 import (
 	"fmt"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/speps/go-hashids"
 	"os"
 	"strings"
 	"time"
@@ -51,4 +53,36 @@ func GenerateToken(userID uint) (string, error) {
 	// Tanda tangani token dengan secret key
 	secret := []byte(os.Getenv("JWT_SECRET")) // misalnya "mysecretkey"
 	return token.SignedString(secret)
+}
+
+func FlashMessage(c *gin.Context, key string) interface{} {
+	session := sessions.Default(c)
+	val := session.Get(key)
+	session.Delete(key)
+	session.Save()
+	return val
+}
+
+func EncodeID(id int) string {
+	hd := hashids.NewData()
+	hd.Salt = "your-secure-salt" // Use a strong, secret salt
+	hd.MinLength = 6             // Optional: Min length of encoded string
+	h, _ := hashids.NewWithData(hd)
+
+	e, _ := h.Encode([]int{id})
+	return e
+}
+
+func DecodeID(encoded string) (int, error) {
+	hd := hashids.NewData()
+	hd.Salt = "your-secure-salt" // Same salt as above!
+	hd.MinLength = 6
+	h, _ := hashids.NewWithData(hd)
+
+	ids, err := h.DecodeWithError(encoded)
+	if err != nil || len(ids) == 0 {
+		return 0, fmt.Errorf("invalid ID")
+	}
+
+	return ids[0], nil
 }

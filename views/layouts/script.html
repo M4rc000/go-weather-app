@@ -1,11 +1,15 @@
 </main><!-- End #main -->
 
 <!-- ======= Footer ======= -->
-<footer id="footer" class="footer">
+{{if eq .title "Not Found"}}
+
+{{else}}
+<footer id="footer" class="footer text-center">
     <div class="copyright">
         &copy; Copyright <strong><span>Weather App</span></strong>. All Rights Reserved
     </div>
-</footer><!-- End Footer -->
+</footer>
+{{end}}
 
 <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
 
@@ -20,6 +24,7 @@
 <script src="/assets/vendor/simple-datatables/simple-datatables.js"></script>
 <script src="/assets/vendor/tinymce/tinymce.min.js"></script>
 <script src="/assets/vendor/php-email-form/validate.js"></script>
+<script src="/assets/vendor/sweet-alert/sweet-alert.js"></script>
 <script>
     function Proper(text){
         const firstLetter = text.charAt(0)

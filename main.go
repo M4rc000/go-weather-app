@@ -7,6 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	csrf "github.com/utrack/gin-csrf"
 	"log"
+	"net/http"
 	"os"
 	"weather-app/config"
 	"weather-app/routes"
@@ -27,10 +28,16 @@ func main() {
 
 	// Set Cookie and Session Config
 	store := cookie.NewStore([]byte("secret"))
-	app.Use(sessions.Sessions("mysession", store))
+
 	store.Options(sessions.Options{
-		MaxAge: 3600, // 1 hour
+		MaxAge:   3600,                 // Session lifetime in seconds (1 hour)
+		Path:     "/",                  // Cookie available on all paths
+		HttpOnly: true,                 // Prevent access from JavaScript (recommended)
+		Secure:   false,                // Set to true in production if using HTTPS
+		SameSite: http.SameSiteLaxMode, // Controls cross-site cookie behavior
 	})
+
+	app.Use(sessions.Sessions("weatherapp", store))
 
 	// Set CRSF TOKEN
 	app.Use(csrf.Middleware(csrf.Options{

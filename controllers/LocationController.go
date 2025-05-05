@@ -8,22 +8,34 @@ import (
 	"log"
 	"net/http"
 	"weather-app/config"
+	"weather-app/middlewares"
 	"weather-app/models"
 	"weather-app/utils"
 )
 
 func GetLocation(c *gin.Context) {
 	session := sessions.Default(c)
+	successLogin := utils.FlashMessage(c, "SUCCESS_LOGIN")
+	userSession := middlewares.GetSessionUser(c)
 	menu, submenu := utils.GetMenuSubmenu(c)
 
-	username := session.Get("USERNAME")
+	session.Set("USERNAME_SESSION", userSession.Username)
+	session.Save()
+
+	var locations []models.Location
+	if err := config.DB.Preload("Weather").Find(&locations).Error; err != nil {
+		c.String(http.StatusInternalServerError, "Failed to load locations: %v", err)
+		return
+	}
 
 	c.HTML(http.StatusFound, "get_location_data.html", gin.H{
-		"title":     "Get Location",
-		"csrfToken": csrf.GetToken(c),
-		"menu":      menu,
-		"submenu":   submenu,
-		"user":      username,
+		"title":        "Get Location",
+		"csrfToken":    csrf.GetToken(c),
+		"menu":         menu,
+		"submenu":      submenu,
+		"user":         userSession,
+		"successLogin": successLogin,
+		"locations":    locations,
 	})
 }
 
@@ -43,7 +55,8 @@ func SearchLocation(c *gin.Context) {
 	var locations []models.Location
 
 	// Search city with LIKE
-	if err := config.DB.Where("city LIKE ?", "%"+input.City+"%").Find(&locations).Error; err != nil {
+	if err := config.DB.Preload("Weather").
+		Where("city ILIKE ?", "%"+input.City+"%").Find(&locations).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
 			"message": "Terjadi kesalahan saat pencarian",

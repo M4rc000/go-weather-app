@@ -13,6 +13,9 @@ func SetupRoutes(r *gin.Engine) {
 		c.Redirect(http.StatusFound, "/auth")
 	})
 
+	// Handle not found route
+	r.NoRoute(controllers.NotFound)
+
 	auth := r.Group("/auth")
 	auth.Use(middlewares.Guest())
 	{
@@ -37,6 +40,11 @@ func SetupRoutes(r *gin.Engine) {
 		home.POST("/weather", controllers.CreateWeather)
 		home.POST("/weather/update/:id", controllers.UpdateWeather)
 		home.GET("/weather/delete/:id", controllers.DeleteWeather)
+
+		home.GET("/cron", controllers.CronJob)
+		home.GET("/cron/logs", controllers.GetCronLogs)
+		home.GET("/run-cron", controllers.RunCron)
+		home.GET("/stop-cron", controllers.StopCron)
 
 		home.GET("/forecast", controllers.GetForecast)
 

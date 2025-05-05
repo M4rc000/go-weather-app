@@ -1,0 +1,12 @@
+<svg width="45" height="45" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient x1="73.425%" y1="76.631%" x2="96.256%" y2="12.84%" id="ico-45-forecast-noc-skoro-jasno-a">
+            <stop stop-color="#2E3234" offset="0%"/>
+            <stop stop-color="#3F4448" offset="100%"/>
+        </linearGradient>
+    </defs>
+    <g fill="none" fill-rule="evenodd" stroke-width="2">
+        <path d="M16.66 17.71c-1.616 1.381-2.598 3.347-2.945 5.899-2.508-1.026-4.715-.693-6.621.999-2.86 2.538-1.932 6.96-.309 8.497 1.624 1.537 2.433 1.883 5.58 1.883h16.622c2.343 0 3.762-.79 4.256-2.368" stroke="#B3B3B3"/>
+        <path d="M25.345 9.762c-.261.953-.4 1.957-.4 2.993 0 6.241 5.059 11.3 11.3 11.3 1.036 0 2.04-.139 2.993-.4A10.24 10.24 0 0130.241 29C24.585 29 20 24.415 20 18.759c0-3.883 2.16-7.26 5.345-8.997z" stroke="url(#ico-45-forecast-noc-skoro-jasno-a)"/>
+    </g>
+</svg>

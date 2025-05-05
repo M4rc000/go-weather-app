@@ -1,0 +1,19 @@
+{{template "header.html".}}
+<section class="section error-404 d-flex flex-column align-items-center justify-content-center">
+    <h2>404</h2>
+    <h4>The page you are looking for doesn't exist.</h4>
+    <a class="btn" href="/home">Back to home</a>
+    <img src="/assets/img/not-found.svg" class="img-fluid py-5" alt="Page Not Found" width="300" height="300">
+</section>
+{{template "script.html".}}
+{{ if .error }}
+<script>
+    Swal.fire({
+        title: "Error",
+        text: `{{ .error }}`,
+        icon: "error",
+        width: "20em"
+    });
+</script>
+{{ end }}
+{{template "footer.html".}}

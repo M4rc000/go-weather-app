@@ -5,6 +5,7 @@ import (
 	csrf "github.com/utrack/gin-csrf"
 	"net/http"
 	"weather-app/config"
+	"weather-app/middlewares"
 	"weather-app/models"
 	"weather-app/utils"
 
@@ -14,16 +15,16 @@ import (
 // GET /weather
 func GetAllWeather(c *gin.Context) {
 	session := sessions.Default(c)
+	userSession := middlewares.GetSessionUser(c)
+	session.Set("USERNAME_SESSION", userSession.Username)
+	session.Save()
 
-	err := session.Get("ERROR")
-	deleteSuccess := session.Get("DELETE_SUCCESS")
-	errorWeather := session.Get("ERROR_WEATHER")
-	successUpdate := session.Get("SUCCESS_UPDATE")
-
-	session.Delete("ERROR")
-	session.Delete("DELETE_SUCCESS")
-	session.Delete("ERROR_WEATHER")
-	session.Delete("SUCCESS_UPDATE")
+	err := utils.FlashMessage(c, "ERROR")
+	successDelete := utils.FlashMessage(c, "DELETE_SUCCESS")
+	errorWeather := utils.FlashMessage(c, "ERROR_WEATHER")
+	successUpdate := utils.FlashMessage(c, "SUCCESS_UPDATE")
+	errorUpdate := utils.FlashMessage(c, "ERROR_UPDATE")
+	deleteError := utils.FlashMessage(c, "DELETE_ERROR")
 
 	menu, _ := utils.GetMenuSubmenu(c)
 
@@ -34,7 +35,7 @@ func GetAllWeather(c *gin.Context) {
 	for i, weather := range weathers {
 		DataWeathers = append(DataWeathers, map[string]interface{}{
 			"Number":        i + 1,
-			"ID":            weather.ID,
+			"ID":            utils.EncodeID(int(weather.ID)),
 			"City":          weather.City,
 			"Latitude":      weather.Latitude,
 			"Longitude":     weather.Longitude,
@@ -47,25 +48,32 @@ func GetAllWeather(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusFound, "show_weather.html", gin.H{
-		"title":         "Weathers",
+		"title":         "Weather",
 		"menu":          menu,
 		"data":          DataWeathers,
-		"user":          session.Get("USERNAME"),
+		"user":          userSession,
 		"errorWeather":  errorWeather,
 		"err":           err,
 		"successUpdate": successUpdate,
-		"deleteSuccess": deleteSuccess,
+		"errorUpdate":   errorUpdate,
+		"successDelete": successDelete,
+		"deleteError":   deleteError,
 	})
 }
 
 // GET /weather/:id
 func GetWeatherByID(c *gin.Context) {
 	id := c.Param("id")
+	DecodedID, _ := utils.DecodeID(id)
 	session := sessions.Default(c)
+	userSession := middlewares.GetSessionUser(c)
 	menu, _ := utils.GetMenuSubmenu(c)
 	var weather models.Weather
 
-	if err := config.DB.First(&weather, "id = ?", id).Error; err != nil {
+	session.Set("USERNAME_SESSION", userSession.Username)
+	session.Save()
+
+	if err := config.DB.First(&weather, "id = ?", DecodedID).Error; err != nil {
 		session.Set("ERROR_WEATHER", "Weather not found")
 		c.Redirect(http.StatusFound, "home/weather/")
 		return
@@ -75,17 +83,24 @@ func GetWeatherByID(c *gin.Context) {
 		"title": "Detail Weather",
 		"menu":  menu,
 		"data":  weather,
+		"user":  userSession,
 	})
 }
 
-// GET /weather/edit/:id
+// GET /weather/edit/:hashid
 func EditWeatherByID(c *gin.Context) {
 	id := c.Param("id")
+	DecodedID, _ := utils.DecodeID(id)
 	session := sessions.Default(c)
+	userSession := middlewares.GetSessionUser(c)
+
+	session.Set("USERNAME_SESSION", userSession.Username)
+	session.Save()
+
 	menu, _ := utils.GetMenuSubmenu(c)
 	var weather models.Weather
 
-	if err := config.DB.First(&weather, "id = ?", id).Error; err != nil {
+	if err := config.DB.First(&weather, "id = ?", DecodedID).Error; err != nil {
 		session.Set("ERROR_WEATHER", "Weather not found")
 		c.Redirect(http.StatusFound, "home/weather/")
 		return
@@ -96,6 +111,7 @@ func EditWeatherByID(c *gin.Context) {
 		"menu":      menu,
 		"data":      weather,
 		"csrfToken": csrf.GetToken(c),
+		"user":      userSession,
 	})
 }
 
@@ -120,12 +136,32 @@ func CreateWeather(c *gin.Context) {
 	})
 }
 
-// PUT /weather/:id
+// POST /weather/:id
 func UpdateWeather(c *gin.Context) {
 	session := sessions.Default(c)
 	id := c.Param("id")
-	var weather models.Weather
 
+	// Step 1: Define a temporary form struct
+	type WeatherFormInput struct {
+		City          string  `form:"City"`
+		Summary       string  `form:"Summary"`
+		Temperature   float64 `form:"Temperature"`
+		WindSpeed     float64 `form:"WindSpeed"`
+		WindAngle     float64 `form:"WindAngle"`
+		WindDirection string  `form:"WindDirection"`
+	}
+
+	// Step 2: Bind form data
+	var input WeatherFormInput
+	if err := c.ShouldBind(&input); err != nil {
+		session.Set("ERROR", "Invalid input: "+err.Error())
+		session.Save()
+		c.Redirect(http.StatusFound, "/home/weather")
+		return
+	}
+
+	// Step 3: Find the weather record
+	var weather models.Weather
 	if err := config.DB.First(&weather, id).Error; err != nil {
 		session.Set("ERROR", "Weather not found")
 		session.Save()
@@ -133,34 +169,34 @@ func UpdateWeather(c *gin.Context) {
 		return
 	}
 
-	var input models.Weather
-	if err := c.ShouldBind(&input); err != nil {
-		session.Set("ERROR", err.Error())
-		session.Save()
-		c.Redirect(http.StatusFound, "/home/weather")
-		return
-	}
-
-	// Update manual field
+	// Step 4: Update fields manually
+	weather.City = input.City
 	weather.Summary = input.Summary
 	weather.Temperature = input.Temperature
 	weather.WindSpeed = input.WindSpeed
 	weather.WindAngle = input.WindAngle
 	weather.WindDirection = input.WindDirection
 
-	config.DB.Save(&weather)
-
-	session.Set("SUCCESS_UPDATE", "Weather successfully updated")
+	// Step 5: Save to DB
+	if err := config.DB.Save(&weather).Error; err != nil {
+		session.Set("ERROR_UPDATE", "Failed to update weather: "+err.Error())
+	} else {
+		session.Set("SUCCESS_UPDATE", "Weather updated successfully")
+	}
 	session.Save()
+
+	// Step 6: Redirect
 	c.Redirect(http.StatusFound, "/home/weather")
 }
 
 // DELETE /weather/del:id
 func DeleteWeather(c *gin.Context) {
 	id := c.Param("id")
+	DecodedID, _ := utils.DecodeID(id)
 	session := sessions.Default(c)
 
-	if err := config.DB.Delete(&models.Weather{}, id).Error; err != nil {
+	// Hard delete (bypass GORM's soft delete)
+	if err := config.DB.Unscoped().Delete(&models.Weather{}, DecodedID).Error; err != nil {
 		session.Set("DELETE_ERROR", "Delete failed")
 		session.Save()
 		c.Redirect(http.StatusFound, "/home/weather")

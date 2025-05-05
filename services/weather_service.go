@@ -3,12 +3,14 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"gorm.io/gorm/clause"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"time"
 	"weather-app/config"
+	"weather-app/logbuffer"
 	"weather-app/models"
 )
 
@@ -31,6 +33,7 @@ func FetchAndUpdateWeather(location models.Location) {
 	apiKey := os.Getenv("METEO_API_KEY")
 	if apiKey == "" {
 		log.Println("[CRON] - [FAILED] - METEO_API_KEY tidak ditemukan di .env")
+		logbuffer.AddLog(fmt.Sprintf("[CRON] - [FAILED] - METEO_API_KEY tidak ditemukan di .env"))
 		return
 	}
 
@@ -42,6 +45,7 @@ func FetchAndUpdateWeather(location models.Location) {
 	resp, err := http.Get(url)
 	if err != nil || resp.StatusCode != 200 {
 		log.Printf("[CRON] - [FAILED] - City: %s - Error ambil data cuaca: %v", location.City, err)
+		logbuffer.AddLog(fmt.Sprintf("[CRON] - [FAILED] - City: %s - Error ambil data cuaca: %v", location.City, err))
 		return
 	}
 	defer resp.Body.Close()
@@ -50,6 +54,7 @@ func FetchAndUpdateWeather(location models.Location) {
 	var data MeteoResponse
 	if err := json.Unmarshal(body, &data); err != nil {
 		log.Printf("[CRON] - [FAILED] - City: %s - Error decode JSON: %v", location.City, err)
+		logbuffer.AddLog(fmt.Sprintf("[CRON] - [FAILED] - City: %s - Error decode JSON: %v", location.City, err))
 		return
 	}
 
@@ -67,11 +72,14 @@ func FetchAndUpdateWeather(location models.Location) {
 	}
 
 	// ✅ Auto: jika ada → UPDATE, jika tidak → INSERT
-	if err := config.DB.
-		Where("location_id = ? AND city = ?", location.ID, location.City).
-		Assign(weather).
-		FirstOrCreate(&weather).Error; err != nil {
+	if err := config.DB.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "location_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"updated_at", "city", "latitude", "longitude", "summary", "temperature", "wind_speed", "wind_angle", "wind_direction",
+		}),
+	}).Create(&weather).Error; err != nil {
 		log.Printf("[CRON] - [FAILED] - City: %s - Gagal simpan/update data: %v", location.City, err)
+		logbuffer.AddLog(fmt.Sprintf("[CRON] - [FAILED] - City: %s - Gagal simpan/update data: %v", location.City, err))
 		return
 	}
 
@@ -80,4 +88,5 @@ func FetchAndUpdateWeather(location models.Location) {
 
 	// ✅ Log Sukses
 	log.Printf("[CRON] - [SUCCESS] - City: %s - Latitude: %.5f - Longitude: %.5f", location.City, location.Latitude, location.Longitude)
+	logbuffer.AddLog(fmt.Sprintf("[CRON] - [SUCCESS] - City: %s - Latitude: %.5f - Longitude: %.5f", location.City, location.Latitude, location.Longitude))
 }

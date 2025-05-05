@@ -2,20 +2,53 @@
 {{ template "navbar.html". }}
 {{ template "sidebar.html". }}
 <section>
-  <div class="card" style="height: 800px">
+  <div class="card">
     <div class="card-body">
       <input type="hidden" name="_csrf" value="{{.csrfToken}}">
       <div class="row mt-5 justify-content-center align-items-end">
+        <div class="col-md-2">
+          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addNewLocationModal">New City</button>
+        </div>
         <div class="col-md-6">
           <input type="text" name="City" id="City" class="form-control" placeholder="Search by city name" required>
         </div>
         <div class="col-md-2">
-          <button type="button" class="btn btn-primary w-100" id="btn-search-loc">Search</button>
+          <button type="button" class="btn btn-success w-100" id="btn-search-loc">Search</button>
         </div>
       </div>
       <div class="row mx-3 mt-1 align-items-center">
         <div class="col-md">
-          <div id="preview"></div>
+          <div id="preview">
+            <div class="row justify-content-center">
+            {{range .locations}}
+              <div class="col-md-4">
+                  <div class="card mb-3 mt-5" style="border: 1px solid grey">
+                    <div class="card-body">
+                      <div class="row justify-content-center">
+                        <div class="col-md text-start">
+                          <h4 class="card-title">{{.City}}</h4>
+                        </div>
+                        <div class="col-md text-end">
+                          {{if eq .Weather.Summary "-"}}
+                          <span></span>
+                          {{else}}
+                          <img src="/assets/img/weather/{{.Weather.Summary}}.svg" alt="{{.Weather.Summary}}" class="img-fluid p-2" style="max-height: 70px;">
+                          {{end}}
+                        </div>
+                      </div>
+                      <p class="card-text mb-2">🌐 <strong>Latitude:</strong> {{.Latitude}}</p>
+                      <p class="card-text mb-2">📍 <strong>Longitude:</strong> {{.Longitude}}</p>
+                      <p class="card-text mb-2">🌤️ <strong>Weather:</strong> {{.Weather.Summary}}</p>
+                      <p class="card-text mb-2">🌡️ <strong>Temperature:</strong> {{.Weather.Temperature}}°C</p>
+                      <p class="card-text mb-2">💨 <strong>Wind Speed:</strong> {{.Weather.WindSpeed}} m/s</p>
+                      <p class="card-text mb-2">🧭 <strong>Wind Angle:</strong> {{.Weather.WindAngle}}°</p>
+                      <p class="card-text">🧭 <strong>Wind Direction:</strong> {{.Weather.WindDirection}}</p>
+                    </div>
+                  </div>
+              </div>
+            {{end}}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -65,15 +98,17 @@
 </div>
 {{ template "script.html". }}
 <script>
+  $('#addNewLocationModal').on('hidden.bs.modal', function () {
+    $(this).find('input, textarea, select').val('');
+  });
+
   $(document).on('click', '#btn-save-loc', function () {
     var City = $('#CityAddNewModal').val();
     var Latitude = $('#LatitudeAddNewModal').val();
     var Longitude = $('#LongitudeAddNewModal').val();
     var csrfToken = $('meta[name="csrf-token"]').attr('content');
 
-    console.info("City: ", City);
-    console.info("Latitude: ", Latitude);
-    console.info("Longitude: ", Longitude);
+    $('#addNewLocationModal').modal('hide');
 
     $.ajax({
       url: '/api/v1/location',
@@ -87,30 +122,21 @@
       },
       success: function (res) {
         let html = '';
-        console.info(res);
-        console.info(res.status);
-        if (res.status == 'success') {
-          res.locations.forEach(loc => {
-            html += `<div class="mt-3 mb-2">
-                  <h5 class="card-title">${loc.city}</h5>
-                  <p class="card-text">Latitude: ${loc.latitude}</p>
-                  <p class="card-text">Longitude: ${loc.longitude}</p>
-                  <p class="card-text">weather_summary: ${loc.weather_summary}</p>
-                  <p class="card-text">temperature:     ${loc.temperature}</p>
-                  <p class="card-text">wind_speed:      ${loc.wind_speed}</p>
-                  <p class="card-text">wind_angle:      ${loc.wind_angle}</p>
-                  <p class="card-text">wind_direction:  ${loc.wind_direction}</p>
-              </div>
-            `;
+        if (res.status === 'success') {
+          Swal.fire({
+            title: "Success",
+            text: "New location successfully added",
+            icon: "success",
+            timer: 2000,
+            showConfirmButton: false
           });
         } else {
-          html = `<h5 class="card-title text-center mt-2">Error found.</h5>
+          html = `
+            <h5 class="card-title text-center mt-2">Error found.</h5>
             <p class="card-text text-center">${res.message}</p>
-            `;
+          `;
         }
-
-        $('#preview').empty();
-        $('#preview').append(html);
+        window.location.href = '/home/get-location';
       },
       error: function (xhr) {
         $('#preview').html('<div class="alert alert-danger">Terjadi kesalahan</div>');
@@ -122,30 +148,15 @@
     var city = $('#City').val();
     var csrfToken = $('meta[name="csrf-token"]').attr('content');
 
-    // var spinner = `<div class="spinner-grow text-primary" role="status">
-    //   <span class="visually-hidden">Loading...</span>
-    // </div>
-    // <div class="spinner-grow text-secondary" role="status">
-    //   <span class="visually-hidden">Loading...</span>
-    // </div>
-    // <div class="spinner-grow text-success" role="status">
-    //   <span class="visually-hidden">Loading...</span>
-    // </div>
-    // <div class="spinner-grow text-danger" role="status">
-    //   <span class="visually-hidden">Loading...</span>
-    // </div>
-    // <div class="spinner-grow text-warning" role="status">
-    //   <span class="visually-hidden">Loading...</span>
-    // </div>
-    // <div class="spinner-grow text-info" role="status">
-    //   <span class="visually-hidden">Loading...</span>
-    // </div>
-    // <div class="spinner-grow text-dark" role="status">
-    //   <span class="visually-hidden">Loading...</span>
-    // </div>
-    // `;
-    //
-    // $('#preview').append(spinner);
+    if(city == ""){
+      Swal.fire({
+        title: "Error",
+        text: `City is required`,
+        icon: "error",
+        width: "20em"
+      });
+      return false
+    }
 
     $.ajax({
       url: '/api/v1/search-location',
@@ -159,18 +170,54 @@
         let html = '';
         if (res.status == 'success') {
           res.locations.forEach(loc => {
-            html += `
-              <div class="mt-3 mb-2">
-                  <h5 class="card-title">${loc.city}</h5>
-                  <p class="card-text">Latitude: ${loc.latitude}</p>
-                  <p class="card-text">Longitude: ${loc.longitude}</p>
-                  <p class="card-text">weather_summary: ${loc.Weather.weather_summary}</p>
-                  <p class="card-text">temperature:     ${loc.Weather.temperature}</p>
-                  <p class="card-text">wind_speed:      ${loc.Weather.wind_speed}</p>
-                  <p class="card-text">wind_angle:      ${loc.Weather.wind_angle}</p>
-                  <p class="card-text">wind_direction:  ${loc.Weather.wind_direction}</p>
+            let weather_summary = (loc.Weather.weather_summary !== '-' ? loc.Weather.weather_summary : 'none');
+            if(weather_summary == 'none'){
+              html += `
+              <div class="col-md-4">
+                <div class="card mb-3 mt-5 shadow-sm" style="border: 1px solid #ccc;">
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md text-start">
+                        <h5 class="card-title">${loc.city}</h5>
+                      </div>
+                    </div>
+                    <p class="card-text mb-2">🌐 <strong>Latitude:</strong> ${loc.latitude}</p>
+                    <p class="card-text mb-2">📍 <strong>Longitude:</strong> ${loc.longitude}</p>
+                    <p class="card-text mb-2">🌤️ <strong>Weather:</strong> ${loc.Weather.weather_summary || '-'}</p>
+                    <p class="card-text mb-2">🌡️ <strong>Temperature:</strong> ${loc.Weather.temperature}°C</p>
+                    <p class="card-text mb-2">💨 <strong>Wind Speed:</strong> ${loc.Weather.wind_speed} m/s</p>
+                    <p class="card-text mb-2">🧭 <strong>Wind Angle:</strong> ${loc.Weather.wind_angle}°</p>
+                    <p class="card-text">🧭 <strong>Wind Direction:</strong> ${loc.Weather.wind_direction || '-'}</p>
+                  </div>
+                </div>
               </div>
             `;
+            }
+            else{
+              html += `
+              <div class="col-md-4">
+                <div class="card mb-3 mt-5 shadow-sm" style="border: 1px solid #ccc;">
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md text-start">
+                        <h5 class="card-title">${loc.city}</h5>
+                      </div>
+                      <div class="col-md text-end">
+                        <img src="/assets/img/weather/${weather_summary}.svg" alt="${weather_summary}" class="img-fluid p-2" style="max-height: 70px;">
+                      </div>
+                    </div>
+                    <p class="card-text mb-2">🌐 <strong>Latitude:</strong> ${loc.latitude}</p>
+                    <p class="card-text mb-2">📍 <strong>Longitude:</strong> ${loc.longitude}</p>
+                    <p class="card-text mb-2">🌤️ <strong>Weather:</strong> ${loc.Weather.weather_summary || '-'}</p>
+                    <p class="card-text mb-2">🌡️ <strong>Temperature:</strong> ${loc.Weather.temperature}°C</p>
+                    <p class="card-text mb-2">💨 <strong>Wind Speed:</strong> ${loc.Weather.wind_speed} m/s</p>
+                    <p class="card-text mb-2">🧭 <strong>Wind Angle:</strong> ${loc.Weather.wind_angle}°</p>
+                    <p class="card-text">🧭 <strong>Wind Direction:</strong> ${loc.Weather.wind_direction || '-'}</p>
+                  </div>
+                </div>
+              </div>
+            `;
+            }
           });
         } else if (res.status === 'empty') {
           html = `
@@ -197,4 +244,14 @@
     });
   });
 </script>
+{{ if .successLogin }}
+<script>
+  Swal.fire({
+    title: "Success",
+    text: `{{ .successLogin }}`,
+    icon: "success",
+    width: "20em"
+  });
+</script>
+{{ end }}
 {{ template "footer.html". }}

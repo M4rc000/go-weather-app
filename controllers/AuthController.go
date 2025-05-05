@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	csrf "github.com/utrack/gin-csrf"
 	"gorm.io/gorm"
-	"log"
 	"net/http"
 	"weather-app/config"
 	"weather-app/models"
@@ -15,25 +15,14 @@ import (
 )
 
 func Register(c *gin.Context) {
-	session := sessions.Default(c)
 
-	// RETRIEVE FLASH MESSAGES
-	err := session.Get("ERROR")
-	failedRegister := session.Get("FAILED_REGISTER")
-	errorInputData := session.Get("ERROR_INPUTDATA")
-	errorName := session.Get("ERROR_NAME")
-	errorUsername := session.Get("ERROR_USERNAME")
-	errorPassword := session.Get("ERROR_PASSWORD")
-	duplicateUsername := session.Get("DUPLICATE_USERNAME")
-
-	//Clear flash messages (so the message disappears after refresh)
-	session.Delete("FAILED_REGISTER")
-	session.Delete("ERROR_NAME")
-	session.Delete("ERROR_USERNAME")
-	session.Delete("ERROR_PASSWORD")
-	session.Delete("DUPLICATE_USERNAME")
-
-	session.Save()
+	err := utils.FlashMessage(c, "ERROR")
+	failedRegister := utils.FlashMessage(c, "FAILED_REGISTER")
+	errorInputData := utils.FlashMessage(c, "ERROR_INPUTDATA")
+	errorName := utils.FlashMessage(c, "ERROR_NAME")
+	errorUsername := utils.FlashMessage(c, "ERROR_USERNAME")
+	errorPassword := utils.FlashMessage(c, "ERROR_PASSWORD")
+	duplicateUsername := utils.FlashMessage(c, "DUPLICATE_USERNAME")
 
 	c.HTML(http.StatusOK, "register.html", gin.H{
 		"title":             "Register",
@@ -113,26 +102,18 @@ func StoreRegister(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
-	session := sessions.Default(c)
-	err := session.Get("ERROR")
-	errorUsername := session.Get("ERROR_USERNAME")
-	errorPassword := session.Get("ERROR_PASSWORD")
-	successRegister := session.Get("SUCCESS_REGISTER")
-	loginError := session.Get("LOGIN_ERROR")
+	successRegister := utils.FlashMessage(c, "SUCCESS_REGISTER")
+	errorUsername := utils.FlashMessage(c, "ERROR_USERNAME")
+	errorPassword := utils.FlashMessage(c, "ERROR_PASSWORD")
+	loginError := utils.FlashMessage(c, "ERROR")
 
-	session.Delete("LOGIN_ERROR")
-	session.Delete("SUCCESS_REGISTER")
-
-	session.Save()
-
-	c.HTML(http.StatusFound, "login.html", gin.H{
+	c.HTML(http.StatusOK, "login.html", gin.H{
 		"title":           "Login",
 		"csrfToken":       csrf.GetToken(c),
-		"error":           err,
-		"errorUsername":   errorUsername,
-		"errorPassword":   errorPassword,
 		"successRegister": successRegister,
 		"loginError":      loginError,
+		"errorUsername":   errorUsername,
+		"errorPassword":   errorPassword,
 	})
 }
 
@@ -160,18 +141,20 @@ func StoreLogin(c *gin.Context) {
 				switch fe.Field() {
 				case "Username":
 					session.Set("ERROR_USERNAME", "Username is required")
+					session.Save()
 				case "Password":
 					switch fe.Tag() {
 					case "required":
 						session.Set("ERROR_PASSWORD", "Password is required")
+						session.Save()
 					}
 				}
 			}
 		} else {
 			session.Set("ERROR", "Invalid input")
+			session.Save()
 		}
-		session.Save()
-		c.Redirect(http.StatusFound, "/auth/register")
+		c.Redirect(http.StatusFound, "/auth")
 		return
 	}
 
@@ -203,19 +186,12 @@ func StoreLogin(c *gin.Context) {
 		return
 	}
 
-	// Set token in secure HttpOnly cookie
-	c.SetCookie("token", tokenString, 3600*24, "/", "", false, true) // secure=true if HTTPS
-
-	// Optional: Store a success flash
-	session.Delete("USERID")
-	session.Delete("USERNAME")
-
-	session.Set("USERID", user.ID)
-	session.Set("USERNAME", user.Username)
-	session.Set("LOGIN_SUCCESS", "Login successfully")
-	if err := session.Save(); err != nil {
-		log.Println("Failed to save session:", err)
-	}
+	usernameSession := user.Username
+	session.Set("USERID_SESSION", fmt.Sprintf("%d", user.ID))
+	session.Set("USERNAME_SESSION", usernameSession)
+	session.Set("JWT_TOKEN", tokenString)
+	session.Set("SUCCESS_LOGIN", "Login successfully")
+	session.Save()
 
 	c.Redirect(http.StatusFound, "/home/get-location")
 }
@@ -223,13 +199,14 @@ func StoreLogin(c *gin.Context) {
 func Logout(c *gin.Context) {
 	session := sessions.Default(c)
 
-	// Hapus semua data dari session
 	session.Clear()
 	session.Save()
 
-	// Hapus token dari cookie (jika digunakan)
-	c.SetCookie("token", "", -1, "/", "", false, true) // expire cookie
-
-	// Redirect ke halaman login atau halaman utama
 	c.Redirect(http.StatusFound, "/auth")
+}
+
+func NotFound(c *gin.Context) {
+	c.HTML(http.StatusNotFound, "NotFound.html", gin.H{
+		"title": "Not Found",
+	})
 }

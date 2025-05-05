@@ -1,0 +1,12 @@
+<svg width="45" height="45" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient x1="50%" y1="-17.528%" x2="21.843%" y2="117.944%" id="ico-45-forecast-bourky-a">
+            <stop stop-color="#F1CC47" offset="0%"/>
+            <stop stop-color="#F76B1C" offset="100%"/>
+        </linearGradient>
+    </defs>
+    <g stroke-width="2" fill="none" fill-rule="evenodd">
+        <path d="M11.57 27.916c-4.057 0-7.308-2.718-6.424-7.174.59-2.971 2.547-4.623 5.872-4.956-.388-3.24.567-6.025 2.865-8.354C17.329 3.938 23 4.565 25.927 7.065c1.95 1.666 3.136 4.039 3.555 7.118 3.026-1.238 5.69-.836 7.99 1.206 3.452 3.063 2.333 8.4.373 10.255-1.96 1.855-2.935 2.272-6.734 2.272" stroke="#B3B3B3"/>
+        <path stroke="url(#ico-45-forecast-bourky-a)" d="M17.253 15.69l-3.977 7.243h7.084L13.276 35.53" transform="translate(5 5)"/>
+    </g>
+</svg>

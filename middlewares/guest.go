@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
@@ -9,9 +10,10 @@ import (
 
 func Guest() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString, err := c.Cookie("token")
-		if err != nil || tokenString == "" {
-			// No token, proceed to login/register
+		session := sessions.Default(c)
+		tokenString, ok := session.Get("JWT_TOKEN").(string)
+		if !ok || tokenString == "" {
+			// Tidak ada token, user dianggap guest → boleh lanjut ke login/register
 			c.Next()
 			return
 		}
@@ -21,13 +23,12 @@ func Guest() gin.HandlerFunc {
 		})
 
 		if err == nil && token.Valid {
-			// Already logged in, redirect away from auth pages
+			// Sudah login → redirect ke home
 			c.Redirect(http.StatusFound, "/home")
-			c.Abort()
 			return
 		}
 
-		// Invalid token, allow access to auth pages
+		// Token tidak valid → biarkan akses auth page
 		c.Next()
 	}
 }

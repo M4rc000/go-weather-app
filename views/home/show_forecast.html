@@ -83,16 +83,16 @@
                         let desc = `${Proper(City)} - ${Proper(Type)}`
                         $('#city-title').append(desc);
                         if (Array.isArray(forecastData)) {
-                            if(Type == "Daily"){
+                            if(Type === "daily"){
                                 forecastData.forEach(function(item) {
                                     let formattedTime = moment(item.date).format('MMM DD, HH:mm');
                                     let weather = item.weather || "No summary";
                                     let temperature = item.all_day.temperature !== undefined ? item.all_day.temperature : "-";
                                     let iconUrl = `https://www.meteosource.com/static/img/ico/weather/${item.icon}.svg`;
 
-                                    let windSpeed = item.all_day.wind?.speed !== undefined ? item.wind.speed : "-";
-                                    let windAngle = item.all_day.wind?.angle !== undefined ? item.wind.angle : "-";
-                                    let windDir   = item.all_day.wind?.dir || "-";
+                                    let windSpeed = item.all_day.wind.speed || "-";
+                                    let windAngle = item.all_day.wind.angle || "-";
+                                    let windDir   = item.all_day.wind.dir || "-";
 
                                     console.log("Weather: ",weather);
                                     console.log("Temp: ",temperature);
