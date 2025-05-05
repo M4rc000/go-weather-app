@@ -10,19 +10,17 @@ This project is a secure fullstack weather tracking app built using Golang, Post
 - CRUD weather data
 - Daily and Hourly forecast using MeteoSource API
 - Caching mechanism to optimize API limit
-- Docker & CI/CD ready (Dockerfile, docker-compose, Jenkinsfile)
 
 ## 📦 Tech Stack
 - Go (Gin, GORM)
 - PostgreSQL
 - JWT Auth
-- Docker, Jenkins
 - MeteoSource API
 
 ## 🚀 Getting Started
 
 1. Rename `.env.example` to `.env` and fill in your secrets
-2. Start with Docker:
+2. Start with Air:
 
 ```bash
-docker-compose up --build
+air
