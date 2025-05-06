@@ -37,7 +37,7 @@ func SetupRoutes(r *gin.Engine) {
 		home.GET("/weather", controllers.GetAllWeather)
 		home.GET("/weather/detail/:id", controllers.GetWeatherByID)
 		home.GET("/weather/edit/:id", controllers.EditWeatherByID)
-		home.POST("/weather", controllers.CreateWeather)
+		home.POST("/weather/create", controllers.CreateWeather)
 		home.POST("/weather/update/:id", controllers.UpdateWeather)
 		home.GET("/weather/delete/:id", controllers.DeleteWeather)
 

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/gin-contrib/sessions"
+	"github.com/go-playground/validator/v10"
 	csrf "github.com/utrack/gin-csrf"
 	"net/http"
 	"weather-app/config"
@@ -23,8 +24,10 @@ func GetAllWeather(c *gin.Context) {
 	successDelete := utils.FlashMessage(c, "DELETE_SUCCESS")
 	errorWeather := utils.FlashMessage(c, "ERROR_WEATHER")
 	successUpdate := utils.FlashMessage(c, "SUCCESS_UPDATE")
+	successCreate := utils.FlashMessage(c, "SUCCESS_CREATE")
 	errorUpdate := utils.FlashMessage(c, "ERROR_UPDATE")
 	deleteError := utils.FlashMessage(c, "DELETE_ERROR")
+	duplicatedWeather := utils.FlashMessage(c, "DUPLICATE_WEATHER")
 
 	menu, _ := utils.GetMenuSubmenu(c)
 
@@ -47,17 +50,20 @@ func GetAllWeather(c *gin.Context) {
 		})
 	}
 
-	c.HTML(http.StatusFound, "show_weather.html", gin.H{
-		"title":         "Weather",
-		"menu":          menu,
-		"data":          DataWeathers,
-		"user":          userSession,
-		"errorWeather":  errorWeather,
-		"err":           err,
-		"successUpdate": successUpdate,
-		"errorUpdate":   errorUpdate,
-		"successDelete": successDelete,
-		"deleteError":   deleteError,
+	c.HTML(http.StatusOK, "show_weather.html", gin.H{
+		"title":             "Weather",
+		"menu":              menu,
+		"data":              DataWeathers,
+		"csrfToken":         csrf.GetToken(c),
+		"user":              userSession,
+		"errorWeather":      errorWeather,
+		"err":               err,
+		"successUpdate":     successUpdate,
+		"errorUpdate":       errorUpdate,
+		"successCreate":     successCreate,
+		"successDelete":     successDelete,
+		"deleteError":       deleteError,
+		"duplicatedWeather": duplicatedWeather,
 	})
 }
 
@@ -87,7 +93,7 @@ func GetWeatherByID(c *gin.Context) {
 	})
 }
 
-// GET /weather/edit/:hashid
+// GET /weather/edit/:id
 func EditWeatherByID(c *gin.Context) {
 	id := c.Param("id")
 	DecodedID, _ := utils.DecodeID(id)
@@ -115,25 +121,89 @@ func EditWeatherByID(c *gin.Context) {
 	})
 }
 
-// POST /weather
+// POST /weather/create
 func CreateWeather(c *gin.Context) {
-	var input models.Weather
+	session := sessions.Default(c)
 
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
+	var input struct {
+		Latitude      float64 `form:"Latitude" gorm:"column:latitude"`
+		Longitude     float64 `form:"Longitude" gorm:"column:longitude"`
+		City          string  `form:"City" gorm:"column:city" gorm:"required"`
+		Summary       string  `form:"Summary" gorm:"column:summary" gorm:"required"`
+		Temperature   float64 `form:"Temperature" gorm:"column:temperature" gorm:"required"`
+		WindSpeed     float64 `form:"WindSpeed" gorm:"column:wind_speed" gorm:"required"`
+		WindAngle     float64 `form:"WindAngle" gorm:"column:wind_angle" gorm:"required"`
+		WindDirection string  `form:"WindDirection" gorm:"column:wind_direction" gorm:"required"`
+		LocationID    int     `gorm:"column:location_id"`
+	}
+
+	if err := c.ShouldBind(&input); err != nil {
+		session.Set("ERROR", "All the field are required")
+		session.Save()
+		c.Redirect(http.StatusFound, "/home/weather")
 		return
 	}
 
-	if err := config.DB.Create(&input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to save weather"})
+	// Validate Input
+	validate := validator.New()
+	if err := validate.Struct(input); err != nil {
+		if validationErrs, ok := err.(validator.ValidationErrors); ok {
+			for _, fe := range validationErrs {
+				switch fe.Field() {
+				case "City":
+					session.Set("ERROR", "City is required")
+				case "Summary":
+					session.Set("ERROR", "Summary is required")
+				case "Temperature":
+					session.Set("ERROR", "Temperature is required")
+				case "WindSpeed":
+					session.Set("ERROR", "Wind Speed is required")
+				case "WindAngle":
+					session.Set("ERROR", "Wind Angle is required")
+				case "WindDirection":
+					session.Set("ERROR", "Wind Direction is required")
+				}
+			}
+		} else {
+			session.Set("ERROR", "Invalid input")
+		}
+		session.Save()
+		c.Redirect(http.StatusFound, "/auth/register")
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"status":  "success",
-		"message": "Weather created",
-		"data":    input,
-	})
+	// Cek duplicate weather data berdasarkan nama kota
+	var existing models.Weather
+	if err := config.DB.Where("city = ?", input.City).First(&existing).Error; err == nil {
+		session.Set("DUPLICATE_WEATHER", "Data weather already exists")
+		session.Save()
+		c.Redirect(http.StatusFound, "/home/weather")
+		return
+	}
+
+	// Cari data lokasi dari table locations
+	var loc models.Location
+	if err := config.DB.Where("city ILIKE ?", "%"+input.City+"%").First(&loc).Error; err == nil {
+		// Ubah input dengan data lokasi yang ditemukan
+		input.LocationID = int(loc.ID)
+		input.City = loc.City
+		input.Latitude = loc.Latitude
+		input.Longitude = loc.Longitude
+	} else {
+		input.LocationID = 0
+	}
+
+	// Simpan data weather ke tabel "weathers"
+	if err := config.DB.Table("weathers").Create(&input).Error; err != nil {
+		session.Set("ERROR", "Failed to save weather")
+		session.Save()
+		c.Redirect(http.StatusFound, "/home/weather")
+		return
+	}
+
+	session.Set("SUCCESS_CREATE", "New weather successfully created")
+	session.Save()
+	c.Redirect(http.StatusFound, "/home/weather")
 }
 
 // POST /weather/:id

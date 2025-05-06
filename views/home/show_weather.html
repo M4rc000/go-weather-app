@@ -60,14 +60,16 @@
 
 <div class="modal fade" id="AddNewWeatherModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <form action="/home/weather/create" method="post">
+            <input type="hidden" name="_csrf" value="{{.csrfToken}}">
+            <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Add New Weather</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="row mt-4">
-                    <div class="col-md-2 pt-2">
+                <div class="row mt-2">
+                    <div class="col-md-4 pt-2">
                         <label for="City" class="form-label">City</label>
                     </div>
                     <div class="col-md-6">
@@ -75,7 +77,7 @@
                     </div>
                 </div>
                 <div class="row mt-2">
-                    <div class="col-md-2 pt-2">
+                    <div class="col-md-4 pt-2">
                         <label for="Summary" class="form-label">Summary</label>
                     </div>
                     <div class="col-md-6">
@@ -83,7 +85,7 @@
                     </div>
                 </div>
                 <div class="row mt-2">
-                    <div class="col-md-2 pt-2">
+                    <div class="col-md-4 pt-2">
                         <label for="Temperature" class="form-label">Temperature</label>
                     </div>
                     <div class="col-md-6">
@@ -91,23 +93,23 @@
                     </div>
                 </div>
                 <div class="row mt-2">
-                    <div class="col-md-2 pt-2">
+                    <div class="col-md-4 pt-2">
                         <label for="WindSpeed" class="form-label">Wind Speed</label>
                     </div>
                     <div class="col-md-6">
-                        <input type="number" class="form-control" id="WindSpeed" name="WindSpeed" required>
+                        <input type="string" class="form-control" id="WindSpeed" name="WindSpeed" required>
                     </div>
                 </div>
                 <div class="row mt-2">
-                    <div class="col-md-2 pt-2">
+                    <div class="col-md-4 pt-2">
                         <label for="WindAngle" class="form-label">Wind Angle</label>
                     </div>
                     <div class="col-md-6">
-                        <input type="number" class="form-control" id="WindAngle" name="WindAngle" required>
+                        <input type="string" class="form-control" id="WindAngle" name="WindAngle" required>
                     </div>
                 </div>
                 <div class="row mt-2">
-                    <div class="col-md-2 pt-2">
+                    <div class="col-md-4 pt-2">
                         <label for="WindDirection" class="form-label">Wind Direction</label>
                     </div>
                     <div class="col-md-6">
@@ -117,9 +119,10 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary">Save changes</button>
+                <button type="submit" class="btn btn-primary">Save</button>
             </div>
         </div>
+        </form>
     </div>
 </div><!-- End Basic Modal-->
 {{ template "script.html". }}
@@ -163,12 +166,42 @@
     });
 </script>
 {{ end }}
+{{ if .duplicatedWeather }}
+<script>
+    Swal.fire({
+        title: "Error",
+        text: `{{ .duplicatedWeather }}`,
+        icon: "error",
+        width: "20em"
+    });
+</script>
+{{ end }}
+{{ if .err }}
+<script>
+    Swal.fire({
+        title: "Error",
+        text: `{{ .err }}`,
+        icon: "error",
+        width: "20em"
+    });
+</script>
+{{ end }}
 {{ if .errorUpdate }}
 <script>
     Swal.fire({
         title: "Error",
         text: `{{ .errorUpdate }}`,
         icon: "error",
+        width: "20em"
+    });
+</script>
+{{ end }}
+{{ if .successCreate }}
+<script>
+    Swal.fire({
+        title: "Success",
+        text: `{{ .successCreate }}`,
+        icon: "success",
         width: "20em"
     });
 </script>

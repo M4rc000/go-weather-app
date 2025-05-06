@@ -1,10 +1,20 @@
 {{ template "header.html". }}
 {{ template "navbar.html". }}
 {{ template "sidebar.html". }}
+
 <div class="card shadow-sm mt-4 border-0">
-    <div class="mt-2 mx-2 mb-2">
-        <button class="btn btn-success me-2" onclick="startCron()"><i class="bx bx-play-circle"></i></button>
-        <button class="btn btn-danger" onclick="stopCron()"><i class="bx bx-stop-circle"></i></button>
+    <div class="row">
+        <div class="col-md text-start mt-2 mx-2 mb-2">
+            <button class="btn btn-success me-2" onclick="startCron()">
+                <i class="bx bx-play-circle"></i>
+            </button>
+            <button class="btn btn-danger" onclick="stopCron()">
+                <i class="bx bx-stop-circle"></i>
+            </button>
+        </div>
+        <div class="col-md text-end mx-3 pt-3">
+        <span id="cron-status"><strong>Status :</strong> Stopped</span>
+    </div>
     </div>
     <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
         <span><i class="bi bi-clock-history me-2"></i>Cron Logs</span>
@@ -12,16 +22,20 @@
     </div>
     <div class="card-body p-3" id="cron-logs"
          style="max-height: 300px; overflow-y: auto; background-color: #f8f9fa; font-family: monospace; font-size: 0.9rem; border: 1px solid #dee2e6; border-radius: .25rem;">
-        <div class="text-muted text-center">Loading logs...</div>
     </div>
 </div>
 
 {{ template "script.html" }}
 <script>
+    // Variabel global untuk menyimpan interval ID
+    var fetchInterval = null;
+
     function fetchLogs() {
         $('#log-spinner').removeClass('d-none');
         $.get('/home/cron/logs', function (data) {
-            $('#cron-logs').html(data.logs.length ? data.logs.join('<br>') : '<div class="text-muted">No logs yet.</div>');
+            $('#cron-logs').html(data.logs.length
+                ? data.logs.join('<br>')
+                : '<div class="text-muted">No logs yet.</div>');
         }).always(() => {
             $('#log-spinner').addClass('d-none');
         });
@@ -29,20 +43,27 @@
 
     function startCron() {
         $.get('/home/run-cron', function (res) {
-            if(res.status == "success"){
+            if (res.status === "success") {
                 Swal.fire({
                     icon: "success",
                     title: "Cron Job Started",
-                    text: "Crob Job successfully started",
+                    text: "Cron Job successfully started",
                     timer: 2000,
                     showConfirmButton: false
                 });
-            }
-            else{
+                // Update status ke Running
+                $('#cron-status').html("<strong>Status :</strong> Running");
+
+                // Mulai fetchLogs jika belum diaktifkan
+                if (!fetchInterval) {
+                    fetchLogs(); // Memanggil logs segera setelah memulai cron
+                    fetchInterval = setInterval(fetchLogs, 5000);
+                }
+            } else {
                 Swal.fire({
                     icon: "error",
-                    title: "Cron Job Started",
-                    text: "Crob Job failed to start",
+                    title: "Cron Job Failed to Start",
+                    text: "Cron Job failed to start",
                     timer: 2000,
                     showConfirmButton: false
                 });
@@ -52,29 +73,32 @@
 
     function stopCron() {
         $.get('/home/stop-cron', function (res) {
-            if(res.status == "success"){
+            if (res.status === "success") {
                 Swal.fire({
                     icon: "success",
                     title: "Cron Job Stopped",
-                    text: "Crob Job successfully stopped",
+                    text: "Cron Job successfully stopped",
                     timer: 2000,
                     showConfirmButton: false
                 });
-            }
-            else{
+                // Update status ke Stopped
+                $('#cron-status').html("<strong>Status :</strong> Stopped");
+                // Hentikan interval fetchLogs bila aktif
+                if (fetchInterval) {
+                    clearInterval(fetchInterval);
+                    fetchInterval = null;
+                }
+            } else {
                 Swal.fire({
                     icon: "error",
-                    title: "Cron Job Stopped",
-                    text: "Crob Job failed to stop",
+                    title: "Cron Job Failed to Stop",
+                    text: "Cron Job failed to stop",
                     timer: 2000,
                     showConfirmButton: false
                 });
             }
         });
     }
-
-
-    fetchLogs();
-    setInterval(fetchLogs, 5000);
 </script>
+
 {{ template "footer.html". }}
